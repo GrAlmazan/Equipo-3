@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./6-1      # carpeta donde está tu .csproj y Dockerfile
+      dockerfile: Dockerfile
+    container_name: api-6-1
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "5127:8080"      # http://localhost:5127 -> API dentro del contenedor
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    container_name: uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "3001:3001"   # UI
+    volumes:
+      - uptime-kuma-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: inventario_sql
+    restart: unless-stopped
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=MiContraseñaSegura2025!
+    ports:
+      - "1433:1433"   # conexión SQL desde tu máquina o API
+    volumes:
+      - mssql-data:/var/opt/mssql
+
+volumes:
+  uptime-kuma-data:
+  mssql-data:
