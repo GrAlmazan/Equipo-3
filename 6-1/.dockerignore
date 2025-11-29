@@ -28,3 +28,13 @@ README.md
 !.git/config
 !.git/packed-refs
 !.git/refs/heads/**
+.dockerignore
+.vs/
+bin/
+obj/
+Properties/
+*.http
+*.sln
+appsettings.Development.json
+appsettings.Production.json
+Dockerfile

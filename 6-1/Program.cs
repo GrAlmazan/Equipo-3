@@ -51,7 +51,7 @@ builder.Services.AddSwaggerGen(options =>
     options.AddSecurityRequirement(securityRequirement);
 });
 
-// --- HealthChecks bÃ¡sicos ---
+// --- HealthChecks básicos ---
 builder.Services.AddHealthChecks();
 
 // 1) Auth JWT
@@ -103,22 +103,6 @@ app.UseHttpMetrics();   // mide las requests HTTP
 app.UseAuthentication();
 app.UseAuthorization();
 
-// --- Endpoint de registro: POST /auth/register ---
-app.MapPost("/auth/register", (RegisterRequest req, UserStore userStore, PasswordHasher<User> hasher) =>
-{
-    // Verificar si ya existe usuario
-    var existing = userStore.FindByUsername(req.Username);
-    if (existing is not null)
-        return Results.BadRequest("Usuario ya existe");
-
-    // Crear usuario con hash de contraseÃ±a
-    var roles = req.Roles ?? new[] { "User" };
-    userStore.AddUser(req.Username, req.Password, roles);
-
-    return Results.Ok(new { message = "Usuario creado correctamente" });
-})
-.WithTags("Auth");
-
 // 4) Endpoint de login: POST /auth/login
 app.MapPost("/auth/login",
     (LoginRequest request,
@@ -146,7 +130,7 @@ app.MapPost("/auth/login",
     })
     .WithTags("Auth");
 
-// 5) Endpoint pÃºblico
+// 5) Endpoint público
 app.MapGet("/public/ping", () => Results.Ok("pong"))
     .AllowAnonymous()
     .WithTags("Public");
@@ -169,7 +153,7 @@ app.MapGet("/api/me", (ClaimsPrincipal user) =>
 // 7) Endpoint protegido por rol Admin
 app.MapGet("/admin/secret", () =>
 {
-    return Results.Ok("SÃ³lo admins pueden ver esto.");
+    return Results.Ok("Sólo admins pueden ver esto.");
 })
     .RequireAuthorization("AdminOnly")
     .WithTags("Admin");
@@ -191,18 +175,17 @@ app.MapGet("/environment", (IHostEnvironment env, IConfiguration cfg) =>
 app.MapHealthChecks("/health")
    .WithTags("Health");
 
-// 10) Endpoint de mÃ©tricas de Prometheus
+// 10) Endpoint de métricas de Prometheus
 app.MapMetrics("/metrics")
    .WithTags("Metrics");
 
 app.Run();
 
 
-// ======= TIPOS Y SERVICIOS (DESPUÃ‰S de app.Run) =======
+// ======= TIPOS Y SERVICIOS (DESPUÉS de app.Run) =======
 
 record LoginRequest(string Username, string Password);
 record LoginResponse(string AccessToken);
-record RegisterRequest(string Username, string Password, string[]? Roles);
 
 public record User(Guid Id, string Username, string PasswordHash, string[] Roles);
 
@@ -226,7 +209,7 @@ public class UserStore
         AddUser("juan", "User123!", new[] { "User" });
     }
 
-    public void AddUser(string username, string plainPassword, string[] roles)
+    private void AddUser(string username, string plainPassword, string[] roles)
     {
         var user = new User(Guid.NewGuid(), username, "", roles);
         var hash = _passwordHasher.HashPassword(user, plainPassword);
