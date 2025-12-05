@@ -1,4 +1,11 @@
 ##### Windows
+
+#Adicional
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+.env
+
 # Windows thumbnail cache files
 Thumbs.db
 Thumbs.db:encryptable
