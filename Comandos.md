@@ -87,3 +87,14 @@ Usa una cantidad **negativa**.
 
 ```
 ```
+
+1. Encender el servidor (Infraestructura): (Solo lo haces una vez)
+
+Bash
+
+docker compose -f docker-compose-infra.yml up -d --build
+2. Trabajar en tu código (Aplicación): (Este es el que usarás diario)
+
+Bash
+
+docker compose -f docker-compose-app.yml up -d --build

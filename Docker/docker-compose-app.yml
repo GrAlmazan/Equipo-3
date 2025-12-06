@@ -1,0 +1,22 @@
+services:
+  webapi:
+    build:
+      context: ..                       
+      dockerfile: WebApi/Docker/Dockerfile
+    # IMPORTANTE: Le puse "webapi" para que coincida con tu config actual de Prometheus
+    container_name: webapi      
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      # Se conecta al contenedor "sqlserver" definido en el archivo infra
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=Project;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
+    ports:
+      - "8080:8080"
+    networks:
+      - raptor-network
+
+# Red compartida (La App solo se une, no la crea)
+networks:
+  raptor-network:
+    external: true

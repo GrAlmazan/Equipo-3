@@ -6,9 +6,15 @@ using Prometheus;
 using Common.CleanArch;
 using Project.Domain.Repositories;
 using Project.Infrastructure.Repositories;
-using Project.Infrastructure.Authentication; // Necesario para JwtGenerator
-using Project.Application.Interfaces;        // Necesario para IJwtGenerator
+using Project.Infrastructure.Authentication;
+using Project.Application.Interfaces;
 using Project.Application.Features.Login;
+using System.Threading.RateLimiting; // <<--- ¡NUEVA IMPORTACIÓN REQUERIDA!\
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+
+using Microsoft.AspNetCore.RateLimiting;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,6 +94,23 @@ builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 // Health Checks
 builder.Services.AddHealthChecks();
 
+// 👇👇👇 6. CONFIGURACIÓN DE RATE LIMITING (NUEVO) 👇👇👇
+// 6. CONFIGURACIÓN DE RATE LIMITING
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("fixed-limit", fixedOptions =>
+    {
+        fixedOptions.PermitLimit = 10;
+        fixedOptions.Window = TimeSpan.FromSeconds(10);
+        fixedOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        fixedOptions.QueueLimit = 5;
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
+// 👆👆👆 FIN CONFIGURACIÓN RATE LIMITING 👆👆👆
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -102,7 +125,10 @@ app.UseHttpsRedirection();
 // Middleware de Prometheus
 app.UseHttpMetrics();
 
-// 👇👇👇 6. ACTIVAR SEGURIDAD (ORDEN IMPORTANTE) 👇👇👇
+// 👇👇👇 ACTIVAR RATE LIMITING (ANTES DE AUTH/AUTHZ) 👇👇👇
+app.UseRateLimiter(); 
+
+// 7. ACTIVAR SEGURIDAD (ORDEN IMPORTANTE)
 app.UseAuthentication(); // <--- ¡Primero identificas quién es!
 app.UseAuthorization();  // <--- ¡Luego verificas si tiene permiso!
 
