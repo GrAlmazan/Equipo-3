@@ -1,10 +1,14 @@
-// Ubicación: WebApi/Project.Domain/Repositories/IUserRepository.cs
 using Project.Domain.Entities;
 
 namespace Project.Domain.Repositories;
 
 public interface IUserRepository
 {
-    // Usamos Task porque la operación será asíncrona
+    // Login
     Task<User?> GetByUserNameAsync(string userName);
+
+    // CRUD Nuevos
+    Task<long> CreateAsync(User user);      // Guardar usuario nuevo
+    Task<bool> DeleteAsync(long userId);    // Borrar por ID
+    Task<IEnumerable<User>> GetAllAsync();  // Ver lista de todos
 }
