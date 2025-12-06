@@ -9,7 +9,7 @@ using Project.Domain.Entities;
 
 namespace Project.WebApi.Controllers;
 
-[Authorize(Roles = "Admin")] // <--- ¡SOLO EL ADMIN PUEDE ENTRAR AQUÍ! 🛑
+[Authorize(Roles = "Admin")] // <--- ¡SOLO EL ADMIN PUEDE ENTRAR AQUÍ!
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController(IMediator mediator) : ControllerBase
