@@ -1,4 +1,8 @@
 using Prometheus;
+using Common.CleanArch;
+using Project.Domain.Repositories;
+using Project.Infrastructure.Repositories;
+using Project.Application.Features.Login;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,6 +10,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// 👇👇👇 AQUÍ ESTÁ LO NUEVO QUE CONECTA TU LOGIN 👇👇👇
+
+// 1. Configurar MediatR: Busca los comandos (Features) en la capa Application
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(LoginUserCommand).Assembly));
+
+// 2. Inyección de Dependencias: Conecta la Interfaz con el Repositorio SQL real
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+// 👆👆👆 FIN DE LO NUEVO 👆👆👆
 
 // Health Checks
 builder.Services.AddHealthChecks();
@@ -21,7 +36,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Middleware de Prometheus para m�tricas HTTP (latencia, status codes, etc.)
+// Middleware de Prometheus para métricas HTTP (latencia, status codes, etc.)
 app.UseHttpMetrics();
 
 app.UseAuthorization();
@@ -56,7 +71,7 @@ app.MapGet("/version", () =>
     return Results.Ok(new { version });
 });
 
-// 3) /health -> healthcheck b�sico
+// 3) /health -> healthcheck básico
 app.MapHealthChecks("/health");
 
 // 4) /metrics -> endpoint de Prometheus
