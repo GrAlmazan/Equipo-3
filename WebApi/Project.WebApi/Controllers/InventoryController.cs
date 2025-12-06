@@ -3,9 +3,11 @@ using Common.CleanArch;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Project.Application.Features.Inventory;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Project.WebApi.Controllers;
 
+[Authorize] // <--- ¡ESTO ES EL CANDADO! 🔒
 [ApiController]
 [Route("api/[controller]")]
 public class InventoryController(IMediator mediator) : ControllerBase

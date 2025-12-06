@@ -1,26 +1,89 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
 using Prometheus;
 using Common.CleanArch;
 using Project.Domain.Repositories;
 using Project.Infrastructure.Repositories;
+using Project.Infrastructure.Authentication; // Necesario para JwtGenerator
+using Project.Application.Interfaces;        // Necesario para IJwtGenerator
 using Project.Application.Features.Login;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// 1. Configurar Controllers y Explorador de API
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-// 👇👇👇 AQUÍ ESTÁ LO NUEVO QUE CONECTA TU LOGIN 👇👇👇
+// 2. Configurar Swagger para que acepte el botón "Authorize" (Candado)
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Raptor Corp API", Version = "v1" });
 
-// 1. Configurar MediatR: Busca los comandos (Features) en la capa Application
+    // Definir seguridad JWT en Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer 12345abcdef\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = ParameterLocation.Header,
+            },
+            new List<string>()
+        }
+    });
+});
+
+// 👇👇👇 3. CONFIGURACIÓN DE SEGURIDAD JWT (NUEVO) 👇👇👇
+
+// A) Registrar el generador de tokens
+builder.Services.AddScoped<IJwtGenerator, JwtGenerator>();
+
+// B) Configurar la validación del token (Authentication)
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings.GetValue<string>("SecretKey");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings.GetValue<string>("Issuer"),
+            ValidAudience = jwtSettings.GetValue<string>("Audience"),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!))
+        };
+    });
+
+// 👆👆👆 FIN CONFIGURACIÓN JWT 👆👆👆
+
+
+// 4. Configurar MediatR (Busca los comandos en la capa Application)
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(LoginUserCommand).Assembly));
 
-// 2. Inyección de Dependencias: Conecta la Interfaz con el Repositorio SQL real
+// 5. Inyección de Dependencias (Repositorios)
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
-// 👆👆👆 FIN DE LO NUEVO 👆👆👆
 
 // Health Checks
 builder.Services.AddHealthChecks();
@@ -36,48 +99,41 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Middleware de Prometheus para métricas HTTP (latencia, status codes, etc.)
+// Middleware de Prometheus
 app.UseHttpMetrics();
 
-app.UseAuthorization();
+// 👇👇👇 6. ACTIVAR SEGURIDAD (ORDEN IMPORTANTE) 👇👇👇
+app.UseAuthentication(); // <--- ¡Primero identificas quién es!
+app.UseAuthorization();  // <--- ¡Luego verificas si tiene permiso!
+
 
 // ---- ENDPOINTS EXTRA ----
 
-// 1) /env -> ver entorno
 app.MapGet("/env", (IHostEnvironment env) =>
 {
     return Results.Ok(new
     {
-        environment = env.EnvironmentName,  // Development, Staging, Production, etc.
+        environment = env.EnvironmentName,
         application = env.ApplicationName
     });
 });
 
-// 2) /version -> lee el archivo VERSION del output
 app.MapGet("/version", () =>
 {
     var versionFilePath = Path.Combine(AppContext.BaseDirectory, "VERSION");
 
     if (!File.Exists(versionFilePath))
     {
-        return Results.NotFound(new
-        {
-            error = "VERSION file not found",
-            path = versionFilePath
-        });
+        return Results.NotFound(new { error = "VERSION file not found", path = versionFilePath });
     }
 
     var version = File.ReadAllText(versionFilePath).Trim();
     return Results.Ok(new { version });
 });
 
-// 3) /health -> healthcheck básico
 app.MapHealthChecks("/health");
-
-// 4) /metrics -> endpoint de Prometheus
 app.MapMetrics("/metrics");
 
-// Controllers existentes
 app.MapControllers();
 
 app.Run();
