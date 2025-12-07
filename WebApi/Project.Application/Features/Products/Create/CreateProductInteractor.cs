@@ -1,4 +1,3 @@
-// Ubicación: WebApi/Project.Application/Features/Products/Create/CreateProductInteractor.cs
 using Common;
 using Common.CleanArch;
 using Project.Domain.Entities;
@@ -10,11 +9,9 @@ public class CreateProductInteractor(IProductRepository repository) : ResultInte
 {
     public override async Task<Result<long>> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
-        // 1. Validaciones simples
-        if (string.IsNullOrEmpty(request.Name)) return Fail("El nombre es obligatorio.");
-        if (request.Price < 0) return Fail("El precio no puede ser negativo.");
+        // Si el código llega a este punto, FluentValidation ya garantizó que los datos son correctos.
 
-        // 2. Crear la entidad
+        // 1. Crear la entidad
         var newProduct = new Product
         {
             Name = request.Name,
@@ -23,10 +20,10 @@ public class CreateProductInteractor(IProductRepository repository) : ResultInte
             IsActive = true
         };
 
-        // 3. Guardar en BD
+        // 2. Guardar en BD
         var id = await repository.CreateAsync(newProduct);
 
-        // 4. Retornar el ID creado
+        // 3. Retornar el ID creado
         return OK(id);
     }
 }

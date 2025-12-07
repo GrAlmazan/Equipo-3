@@ -1,0 +1,30 @@
+name: .NET Core CI
+
+on:
+  push:
+    branches: [ "main", "development" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore WebApi/Project.WebApi/Project.WebApi.csproj
+
+    - name: Build
+      run: dotnet build WebApi/Project.WebApi/Project.WebApi.csproj --no-restore
+
+    - name: Test
+      # Ejecuta las pruebas que creamos en el paso 3
+      run: dotnet test WebApi/Project.Tests/Project.Tests.csproj --no-build --verbosity normal

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Project.Application.Features.Users.Create;
 using Project.Application.Features.Users.Delete;
 using Project.Application.Features.Users.Get;
+using Project.Application.Features.Users.Update; // <--- Nuevo using para el Update
 using Project.Domain.Entities;
 
 namespace Project.WebApi.Controllers;
@@ -33,6 +34,21 @@ public class UsersController(IMediator mediator) : ControllerBase
             return Ok(new { UserId = success.Data, Message = "Usuario creado exitosamente" });
 
         if (result is Common.FailureResult<long> failure) 
+            return BadRequest(new { Error = failure.Message });
+
+        return BadRequest();
+    }
+
+    // PUT api/users (Actualizar) - NUEVO ENDPOINT REQUERIDO
+    [HttpPut]
+    public async Task<IActionResult> Update([FromBody] UpdateUserCommand command)
+    {
+        var result = await mediator.Send(command);
+        
+        if (result is Common.SuccessResult<bool>) 
+            return Ok(new { Message = "Usuario actualizado correctamente." });
+
+        if (result is Common.FailureResult<bool> failure)
             return BadRequest(new { Error = failure.Message });
 
         return BadRequest();
