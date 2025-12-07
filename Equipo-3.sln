@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -13,6 +13,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Project.Infrastructure", "WebApi\Project.Infrastructure\Project.Infrastructure.csproj", "{5CCD5478-5F89-5C2E-F275-F1E8D3350028}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Project.WebApi", "WebApi\Project.WebApi\Project.WebApi.csproj", "{CD70FA11-3EEB-D4C8-FAA8-631DCD8B667C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Project.Tests", "WebApi\Project.Tests\Project.Tests.csproj", "{7A60ECEC-7B3F-4996-9024-7951EB7CD949}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -40,6 +42,10 @@ Global
 		{CD70FA11-3EEB-D4C8-FAA8-631DCD8B667C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CD70FA11-3EEB-D4C8-FAA8-631DCD8B667C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CD70FA11-3EEB-D4C8-FAA8-631DCD8B667C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7A60ECEC-7B3F-4996-9024-7951EB7CD949}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A60ECEC-7B3F-4996-9024-7951EB7CD949}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7A60ECEC-7B3F-4996-9024-7951EB7CD949}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7A60ECEC-7B3F-4996-9024-7951EB7CD949}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -50,6 +56,7 @@ Global
 		{CAE0FA9E-FF7C-8FE0-89BC-CE82FF8CA97B} = {6EDC7094-E22D-CF10-605B-B42C7FB8B0A8}
 		{5CCD5478-5F89-5C2E-F275-F1E8D3350028} = {6EDC7094-E22D-CF10-605B-B42C7FB8B0A8}
 		{CD70FA11-3EEB-D4C8-FAA8-631DCD8B667C} = {6EDC7094-E22D-CF10-605B-B42C7FB8B0A8}
+		{7A60ECEC-7B3F-4996-9024-7951EB7CD949} = {6EDC7094-E22D-CF10-605B-B42C7FB8B0A8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FB969F3D-1CE1-4CD8-A071-B3DC99B4C420}

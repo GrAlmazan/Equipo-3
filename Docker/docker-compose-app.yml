@@ -1,22 +1,33 @@
 services:
   webapi:
     build:
-      context: ..                       
+      context: ..
       dockerfile: WebApi/Docker/Dockerfile
-    # IMPORTANTE: Le puse "webapi" para que coincida con tu config actual de Prometheus
-    container_name: webapi      
+    container_name: webapi
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
-      # Se conecta al contenedor "sqlserver" definido en el archivo infra
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=Project;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
-    ports:
-      - "8080:8080"
+    # QUITAMOS LOS PUERTOS EXTERNOS DE AQUI para que solo se entre por NGINX
+    # ports:
+    #   - "8080:8080" 
     networks:
       - raptor-network
 
-# Red compartida (La App solo se une, no la crea)
+  # --- NUEVO: NGINX ---
+  reverse-proxy:
+    image: nginx:latest
+    container_name: reverse-proxy
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80" # Entramos por el puerto 80 estándar
+    depends_on:
+      - webapi
+    networks:
+      - raptor-network
+
 networks:
   raptor-network:
     external: true
