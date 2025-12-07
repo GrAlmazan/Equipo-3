@@ -1,30 +1,48 @@
-name: .NET Core CI
+name: Deploy to Production Server
 
 on:
   push:
-    branches: [ "main", "development" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ "main" ] # Se activa cuando haces push a main
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: self-hosted # <--- Esto le dice que use TU servidor, no la nube
 
     steps:
+    # 1. Bajar el código
     - uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
+    # 2. Generar Certificados SSL automáticamente (si no existen)
+    #    Esto crea la carpeta y los archivos dentro de Docker/nginx
+    - name: Ensure SSL Certificates exist
+      run: |
+        mkdir -p Docker/nginx
+        if [ ! -f Docker/nginx/nginx-selfsigned.key ]; then
+           echo "Generando certificados SSL..."
+           openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+           -keyout Docker/nginx/nginx-selfsigned.key \
+           -out Docker/nginx/nginx-selfsigned.crt \
+           -subj "/C=MX/ST=Tamaulipas/L=Matamoros/O=Equipo3/OU=IT/CN=localhost"
+        fi
 
-    - name: Restore dependencies
-      run: dotnet restore WebApi/Project.WebApi/Project.WebApi.csproj
+    # 3. Crear el archivo .env con tus Secretos
+    - name: Generate .env file
+      run: |
+        echo "Creando archivo .env..."
+        echo "ACCEPT_EULA=Y" > Docker/.env
+        echo "MSSQL_PID=Developer" >> Docker/.env
+        echo "SA_PASSWORD=${{ secrets.SA_PASSWORD }}" >> Docker/.env
+        echo "SEQ_ACCEPT_EULA=Y" >> Docker/.env
+        echo "SEQ_FIRSTRUN_NOAUTHENTICATION=true" >> Docker/.env
+        echo "GRAFANA_ADMIN_USER=admin" >> Docker/.env
+        echo "GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" >> Docker/.env
 
-    - name: Build
-      run: dotnet build WebApi/Project.WebApi/Project.WebApi.csproj --no-restore
+    # 4. Desplegar Infraestructura (BD, etc.)
+    - name: Deploy Infrastructure
+      working-directory: ./Docker
+      run: docker compose -f docker-compose-infra.yml up -d --build
 
-    - name: Test
-      # Ejecuta las pruebas que creamos en el paso 3
-      run: dotnet test WebApi/Project.Tests/Project.Tests.csproj --no-build --verbosity normal
+    # 5. Desplegar Aplicación (API + Nginx)
+    - name: Deploy Application
+      working-directory: ./Docker
+      run: docker compose -f docker-compose-app.yml up -d --build --force-recreate
