@@ -1,26 +1,42 @@
-Aquí tienes el contenido formateado y listo para copiar. Solo dale al botón de **Copiar** en la esquina del bloque y reemplaza todo el contenido de tu archivo `Comandos.md` con esto:
+# 🛠 Guía de Operaciones y Pruebas de API
 
-````markdown
-# Guía de Ejecución y Pruebas de API
+Este documento detalla cómo levantar el entorno de desarrollo y los payloads JSON necesarios para probar los flujos principales del sistema.
 
-### 1. Levantar el Entorno
-Ejecuta este comando en tu terminal (dentro de la carpeta `Docker/`) para compilar los cambios y reiniciar el servicio:
+---
+
+## 🐳 Gestión del Entorno (Docker)
+
+El sistema ahora está dividido en dos partes para facilitar el desarrollo. Ejecuta los comandos en el orden indicado.
+
+### 1. Encender Infraestructura (Solo una vez)
+
+Levanta los servicios base (Base de datos SQL, Seq, Grafana, Prometheus). Solo necesitas ejecutar esto si reinicias tu PC o si cambiaste configuración de infraestructura.
 
 ```bash
-docker-compose up --build -d webapi
-````
+docker compose -f docker-compose-infra.yml up -d --build
+```
 
------
+### 2. Levantar la Aplicación (Uso Diario)
 
-### 2\. Iniciar Sesión (Login)
+Utiliza este comando cada vez que hagas cambios en tu código C# (.NET) y quieras probarlos.
 
-Obtén tu **Token JWT** para autorizarte en el sistema.
+```bash
+docker compose -f docker-compose-app.yml up -d --build
+```
 
-  * **Método:** `POST`
-  * **Endpoint:** `/api/Auth/login`
-  * **Acción:** Copia el token de la respuesta y pégalo en el botón **Authorize** (escribiendo ` Bearer  ` antes del código).
+---
 
-<!-- end list -->
+## 🧪 Flujo de Pruebas (Endpoints)
+
+Sigue este orden para validar el funcionamiento del sistema.
+
+### 1. Iniciar Sesión (Login)
+
+Obtén tu Token JWT para autorizarte en el sistema.
+
+- **Método:** `POST`
+- **Endpoint:** `/api/Auth/login`
+- **Acción:** Copia el token de la respuesta y pégalo en el botón **Authorize** de Swagger (escribiendo `Bearer` antes del código).
 
 ```json
 {
@@ -29,17 +45,13 @@ Obtén tu **Token JWT** para autorizarte en el sistema.
 }
 ```
 
------
-
-### 3\. Crear Producto Nuevo
+### 2. Crear Producto Nuevo
 
 Registra un nuevo ítem en la base de datos.
 
-  * **Método:** `POST`
-  * **Endpoint:** `/api/Products`
-  * **Nota:** Fíjate en el `ID` que te devuelve la respuesta (usualmente será `1` si es el primero).
-
-<!-- end list -->
+- **Método:** `POST`
+- **Endpoint:** `/api/Products`
+- **Nota:** Fíjate en el `id` que te devuelve la respuesta (usualmente será `1` si es el primero).
 
 ```json
 {
@@ -49,19 +61,16 @@ Registra un nuevo ítem en la base de datos.
 }
 ```
 
------
-
-### 4\. Ajustar Stock (Inventario)
+### 3. Ajustar Stock (Inventario)
 
 Registra entradas o salidas de mercancía.
 
-  * **Método:** `POST`
-  * **Endpoint:** `/api/Inventory/adjust`
-  * **Requisito:** El `productId` debe coincidir con el que creaste en el paso anterior.
+- **Método:** `POST`
+- **Endpoint:** `/api/Inventory/adjust`
+- **Requisito:** El `productId` debe coincidir con el que creaste en el paso anterior.
 
 #### Opción A: Compra (Sumar Stock)
-
-Usa una cantidad **positiva**.
+Usa una cantidad positiva para agregar inventario.
 
 ```json
 {
@@ -73,8 +82,7 @@ Usa una cantidad **positiva**.
 ```
 
 #### Opción B: Venta (Restar Stock)
-
-Usa una cantidad **negativa**.
+Usa una cantidad negativa para reducir inventario.
 
 ```json
 {
@@ -84,17 +92,3 @@ Usa una cantidad **negativa**.
   "reason": "Venta a cliente final"
 }
 ```
-
-```
-```
-
-1. Encender el servidor (Infraestructura): (Solo lo haces una vez)
-
-Bash
-
-docker compose -f docker-compose-infra.yml up -d --build
-2. Trabajar en tu código (Aplicación): (Este es el que usarás diario)
-
-Bash
-
-docker compose -f docker-compose-app.yml up -d --build
