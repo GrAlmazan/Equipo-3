@@ -9,18 +9,17 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=Project;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
-    # SIN PORTS aqui, todo pasa por Nginx
     networks:
       - raptor-network
 
-  # Reverse Proxy NGINX
   reverse-proxy:
     image: nginx:latest
     container_name: reverse-proxy
     ports:
-      - "80:80"   # HTTP
-      - "443:443" # HTTPS
+      - "80:80"
+      - "443:443"
     volumes:
+      # 👇 ESTO ES LO QUE IMPORTA: Usa ./ para buscar en la carpeta actual
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/nginx-selfsigned.crt:/etc/nginx/ssl/nginx-selfsigned.crt:ro
       - ./nginx/nginx-selfsigned.key:/etc/nginx/ssl/nginx-selfsigned.key:ro
