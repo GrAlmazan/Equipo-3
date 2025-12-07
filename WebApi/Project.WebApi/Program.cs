@@ -9,12 +9,13 @@ using Project.Infrastructure.Repositories;
 using Project.Infrastructure.Authentication;
 using Project.Application.Interfaces;
 using Project.Application.Features.Login;
-using System.Threading.RateLimiting; // <<--- ¡NUEVA IMPORTACIÓN REQUERIDA!\
-using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
-
 using Microsoft.AspNetCore.RateLimiting;
-
+using Project.Infrastructure.DbFactory;
+using Project.Infrastructure.Generic;
+// 👇 NUEVOS USINGS PARA VALIDACIÓN
+using FluentValidation;
+using Project.Application.Features.Products.Create; 
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,12 +23,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// 2. Configurar Swagger para que acepte el botón "Authorize" (Candado)
+// 2. Configurar Swagger
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Inventario - Equipo 3", Version = "v1" });
 
-    // Definir seguridad JWT en Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer 12345abcdef\"",
@@ -42,11 +42,7 @@ builder.Services.AddSwaggerGen(c =>
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                },
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" },
                 Scheme = "oauth2",
                 Name = "Bearer",
                 In = ParameterLocation.Header,
@@ -56,12 +52,9 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// 👇👇👇 3. CONFIGURACIÓN DE SEGURIDAD JWT (NUEVO) 👇👇👇
-
-// A) Registrar el generador de tokens
+// 3. SEGURIDAD JWT
 builder.Services.AddScoped<IJwtGenerator, JwtGenerator>();
 
-// B) Configurar la validación del token (Authentication)
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings.GetValue<string>("SecretKey");
 
@@ -80,13 +73,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// 👆👆👆 FIN CONFIGURACIÓN JWT 👆👆👆
+// 4. CONFIGURACIÓN MEDIATR Y PIPELINES (¡Aquí está el cambio!)
+builder.Services.AddMediatR(cfg => 
+{
+    cfg.RegisterServicesFromAssembly(typeof(LoginUserCommand).Assembly);
+    
+    // 👇 Registrar Pipelines en ORDEN:
+    // 1. Validación (Revisa reglas antes de procesar)
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>)); 
+    // 2. Interactor (Logs y manejo de errores)
+    cfg.AddOpenBehavior(typeof(InteractorPipeline<,>));
+});
+
+// 👇 Registrar AUTOMÁTICAMENTE todos los validadores de la capa Application
+builder.Services.AddValidatorsFromAssembly(typeof(CreateProductCommandValidator).Assembly);
 
 
-// 4. Configurar MediatR (Busca los comandos en la capa Application)
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(LoginUserCommand).Assembly));
+// 5. INYECCIÓN DE DEPENDENCIAS
+builder.Services.AddScoped<ISqlDbConnectionFactory, SqlDbConnectionFactory>();
+builder.Services.AddScoped<IGenericDB, GenericDB>();
 
-// 5. Inyección de Dependencias (Repositorios)
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
@@ -94,8 +100,7 @@ builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 // Health Checks
 builder.Services.AddHealthChecks();
 
-// 👇👇👇 6. CONFIGURACIÓN DE RATE LIMITING (NUEVO) 👇👇👇
-// 6. CONFIGURACIÓN DE RATE LIMITING
+// 6. RATE LIMITING
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("fixed-limit", fixedOptions =>
@@ -105,15 +110,12 @@ builder.Services.AddRateLimiter(options =>
         fixedOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         fixedOptions.QueueLimit = 5;
     });
-
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
-// 👆👆👆 FIN CONFIGURACIÓN RATE LIMITING 👆👆👆
-
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configuración del Pipeline HTTP
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -121,41 +123,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// Middleware de Prometheus
-app.UseHttpMetrics();
-
-// 👇👇👇 ACTIVAR RATE LIMITING (ANTES DE AUTH/AUTHZ) 👇👇👇
+app.UseHttpMetrics(); // Prometheus
 app.UseRateLimiter(); 
 
-// 7. ACTIVAR SEGURIDAD (ORDEN IMPORTANTE)
-app.UseAuthentication(); // <--- ¡Primero identificas quién es!
-app.UseAuthorization();  // <--- ¡Luego verificas si tiene permiso!
+app.UseAuthentication(); 
+app.UseAuthorization();  
 
-
-// ---- ENDPOINTS EXTRA ----
-
-app.MapGet("/env", (IHostEnvironment env) =>
-{
-    return Results.Ok(new
-    {
-        environment = env.EnvironmentName,
-        application = env.ApplicationName
-    });
-});
-
-app.MapGet("/version", () =>
-{
-    var versionFilePath = Path.Combine(AppContext.BaseDirectory, "VERSION");
-
-    if (!File.Exists(versionFilePath))
-    {
-        return Results.NotFound(new { error = "VERSION file not found", path = versionFilePath });
-    }
-
-    var version = File.ReadAllText(versionFilePath).Trim();
-    return Results.Ok(new { version });
-});
+// Endpoints Auxiliares
+app.MapGet("/env", (IHostEnvironment env) => Results.Ok(new { environment = env.EnvironmentName }));
+app.MapGet("/version", () => Results.Ok(new { version = "1.0.0-final" }));
 
 app.MapHealthChecks("/health");
 app.MapMetrics("/metrics");

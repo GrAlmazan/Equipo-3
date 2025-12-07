@@ -11,4 +11,5 @@ public interface IUserRepository
     Task<long> CreateAsync(User user);      // Guardar usuario nuevo
     Task<bool> DeleteAsync(long userId);    // Borrar por ID
     Task<IEnumerable<User>> GetAllAsync();  // Ver lista de todos
+    Task<bool> UpdateAsync(long id, string fullName, string userName, long rolId);
 }

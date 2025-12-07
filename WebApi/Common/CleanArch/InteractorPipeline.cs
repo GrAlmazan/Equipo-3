@@ -28,7 +28,23 @@ public record InteractorPipeline<TRequest, TResponse>(MediatR.IMediator Mediator
     public async Task<TResponse> Handle(TRequest request, MediatR.RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         TResponse response;
-        Logger.LogInformation("{@Request}", request);
+
+        // --- 🔒 SEGURIDAD: FILTRO DE LOGS ---
+        // Verificamos el nombre del comando. Si contiene "Login" o "CreateUser", 
+        // asumimos que trae datos sensibles (contraseñas) y NO lo logueamos completo.
+        var requestName = typeof(TRequest).Name;
+        
+        if (requestName.Contains("Login") || requestName.Contains("CreateUser")) 
+        {
+            Logger.LogInformation("Procesando {RequestName} [Datos ocultos por seguridad]", requestName);
+        }
+        else
+        {
+            // Para cualquier otro comando seguro, logueamos todos los datos como siempre.
+            Logger.LogInformation("{@Request}", request);
+        }
+        // -------------------------------------
+
         try
         {
             response = await next().ConfigureAwait(false);
